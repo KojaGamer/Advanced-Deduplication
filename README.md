@@ -31,14 +31,16 @@ The logic behind the program:
 Phase 1, Folder Treatment
 Two similar directories are located on the same directory, for
 reference named:
--"Make.Waffles.12" -"Make.Windows.25"
+-"Make.Waffles.12"
+-"Make.Windows.25"
 
 To make the paths to the directories compact, we would first make a
 folder named after the two directories why try to compare which for
 our example is the name "Make.W" and inside we will put the
 directories we try to compare. Next we will rename the directories
 into the following:
-- "affles.12" - "indows.25"
+- "affles.12"
+- "indows.25"
 
 When we want to reverse it, we would copy the name of the folder
 and paste it on the front of the name of the compared directories.
@@ -61,7 +63,8 @@ for if we introduced e.g. another two folders for reference named:
 -"Make.Webs.124" -"Make.Wine.102"
 
 which after processing would turn into:
--"ebs.124" -"ine.102"
+-"ebs.124"
+-"ine.102"
 
 Now say that "Base Files" folder of "ine.102" and "ebs.124" have
 duplicates with the "Base Files" folder of the "affles.12" and
