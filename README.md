@@ -18,7 +18,7 @@ Modules I used:
   import shutil
   from typing import Dict, List, Optional, Tuple
   import hashlib
-  from typing import List, Dict, Set, Tuple, Optional
+  from typing import List, Dict, Tuple, Optional
   from collections import defaultdict
 
 Launch the program by double clicking on GUI.py file
