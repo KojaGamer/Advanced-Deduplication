@@ -12,6 +12,7 @@ import shutil
 import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
+import ErrorLogger
 
 
 class ReversalManager:
@@ -20,24 +21,21 @@ class ReversalManager:
         self.state_file = self.base_path / ".optimizer_state.json"
         self.progress_callback = progress_callback
         self.reversal_log = []
+        
+        # Set up ErrorLogger with progress callback if provided
+        if progress_callback:
+            ErrorLogger.get_logger().set_gui_callback(progress_callback)
     
     def update_progress(self, message: str):
         """Update progress through callback"""
-        if self.progress_callback:
-            self.progress_callback(message)
+        ErrorLogger.log_message(message)
     
     def log_reversal_action(self, action: str, details: Dict):
         """Log reversal actions"""
-        timestamp = datetime.datetime.now().isoformat()
-        log_entry = {
-            "timestamp": timestamp,
-            "action": action,
-            "details": details
-        }
+        log_entry = ErrorLogger.get_logger().create_log_entry(f"REVERSAL-{action}", details)
         self.reversal_log.append(log_entry)
         
-        if self.progress_callback:
-            self.progress_callback(f"[REVERSAL-{action}] {details}")
+        ErrorLogger.log_action(f"REVERSAL-{action}", details)
     
     def load_optimization_state(self) -> Optional[Dict]:
         """Load the optimization state file"""
@@ -51,7 +49,7 @@ class ReversalManager:
             self.update_progress(f"Loaded state from {state['timestamp']}")
             return state
         except Exception as e:
-            self.update_progress(f"Error loading state file: {e}")
+            ErrorLogger.handle_exception(e, "Loading optimization state file")
             return None
     
     def restore_duplicate_files(self, optimization_log: List[Dict]) -> bool:
@@ -98,7 +96,7 @@ class ReversalManager:
                             "to": str(dup_path)
                         })
                     except Exception as e:
-                        self.update_progress(f"Error restoring {dup_path}: {e}")
+                        ErrorLogger.handle_exception(e, f"Restoring duplicate file to {dup_path}")
             else:
                 self.update_progress(f"Backup file not found: {backup_location}")
         
@@ -113,7 +111,7 @@ class ReversalManager:
                 })
                 self.update_progress(f"Removed Base Files directory: {base_files_dir}")
             except Exception as e:
-                self.update_progress(f"Error removing Base Files directory {base_files_dir}: {e}")
+                ErrorLogger.handle_exception(e, f"Removing Base Files directory {base_files_dir}")
         
         return True
     
@@ -158,7 +156,7 @@ class ReversalManager:
                     self.update_progress(f"Restored: {from_path.name}")
                     
                 except Exception as e:
-                    self.update_progress(f"Error moving {to_path} to {from_path}: {e}")
+                    ErrorLogger.handle_exception(e, f"Moving {to_path} to {from_path}")
             else:
                 self.update_progress(f"Directory not found: {to_path}")
         
@@ -175,7 +173,7 @@ class ReversalManager:
                     })
                     self.update_progress(f"Removed empty parent directory: {parent_dir}")
                 except Exception as e:
-                    self.update_progress(f"Error removing empty directory {parent_dir}: {e}")
+                    ErrorLogger.handle_exception(e, f"Removing empty directory {parent_dir}")
         
         return True
     
@@ -209,7 +207,7 @@ class ReversalManager:
                     self.update_progress(f"Restored: {old_path.name}")
                     
                 except Exception as e:
-                    self.update_progress(f"Error restoring {new_path} to {old_path}: {e}")
+                    ErrorLogger.handle_exception(e, f"Restoring {new_path} to {old_path}")
             else:
                 self.update_progress(f"Renamed directory not found: {new_path}")
         
@@ -218,10 +216,10 @@ class ReversalManager:
     
     def save_reversal_log(self):
         """Save the reversal log"""
-        reversal_log_file = self.base_path / f".reversal_log_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        reversal_log_file = self.base_path / f".reversal_log_{ErrorLogger.get_timestamp('filename')}.json"
         
         reversal_state = {
-            "timestamp": datetime.datetime.now().isoformat(),
+            "timestamp": ErrorLogger.get_timestamp('iso'),
             "base_path": str(self.base_path),
             "reversal_log": self.reversal_log
         }
@@ -231,21 +229,21 @@ class ReversalManager:
                 json.dump(reversal_state, f, indent=2)
             self.update_progress(f"Reversal log saved to {reversal_log_file}")
         except Exception as e:
-            self.update_progress(f"Error saving reversal log: {e}")
+            ErrorLogger.handle_exception(e, "Saving reversal log")
     
     def cleanup_state_file(self):
         """Remove the optimization state file after successful reversal"""
         try:
             if self.state_file.exists():
                 # Create a backup before removing
-                backup_name = f".optimizer_state_reversed_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+                backup_name = f".optimizer_state_reversed_{ErrorLogger.get_timestamp('filename')}.json"
                 backup_path = self.base_path / backup_name
                 shutil.copy2(self.state_file, backup_path)
                 
                 self.state_file.unlink()
                 self.update_progress(f"State file archived as {backup_name}")
         except Exception as e:
-            self.update_progress(f"Error cleaning up state file: {e}")
+            ErrorLogger.handle_exception(e, "Cleaning up state file")
     
     def reverse_optimization(self) -> bool:
         """Main reversal function - reverses the last optimization"""
@@ -284,7 +282,7 @@ class ReversalManager:
             return True
             
         except Exception as e:
-            self.update_progress(f"Error during reversal: {e}")
+            ErrorLogger.handle_exception(e, "Reversal process")
             return False
     
     def can_reverse(self) -> Tuple[bool, str]:
@@ -313,4 +311,4 @@ class ReversalManager:
             return True, f"Can reverse optimization from {optimization_date}"
             
         except Exception as e:
-            return False, f"Error checking reversal status: {e}"
+            return False, f"Error checking reversal status: {ErrorLogger.handle_exception(e, 'Checking reversal status')}"

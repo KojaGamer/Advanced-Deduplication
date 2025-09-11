@@ -17,6 +17,7 @@ import queue
 # Import the core modules
 from Organizer import DirectoryOptimizer
 from Restorer import ReversalManager
+import ErrorLogger
 
 
 class DirectoryOptimizerGUI:
@@ -33,6 +34,9 @@ class DirectoryOptimizerGUI:
         
         # Queue for thread communication
         self.progress_queue = queue.Queue()
+        
+        # Initialize ErrorLogger with GUI callback
+        ErrorLogger.initialize_logger(gui_callback=self.log_message_to_text)
         
         self.create_widgets()
         self.check_progress_queue()
@@ -139,12 +143,15 @@ class DirectoryOptimizerGUI:
             self.log_message(f"Selected directory: {directory}")
             self.update_reversal_button_state()
     
-    def log_message(self, message):
-        """Add message to log with timestamp"""
-        timestamp = datetime.datetime.now().strftime("%H:%M:%S")
-        self.log_text.insert(tk.END, f"[{timestamp}] {message}\n")
+    def log_message_to_text(self, message):
+        """Add message to log text widget (used as GUI callback)"""
+        self.log_text.insert(tk.END, f"{message}\n")
         self.log_text.see(tk.END)
         self.root.update_idletasks()
+    
+    def log_message(self, message):
+        """Add message to log with timestamp using ErrorLogger"""
+        ErrorLogger.log_message(message)
     
     def clear_log(self):
         self.log_text.delete('1.0', tk.END)
@@ -186,15 +193,26 @@ class DirectoryOptimizerGUI:
                 self.reverse_button.configure(state='disabled')
                 
         except Exception:
+            # Log the exception but don't show GUI error for this
             self.reverse_button.configure(state='disabled')
     
     def validate_inputs(self):
         if not self.base_path_var.get():
-            messagebox.showerror("Error", "Please select a base directory")
+            ErrorLogger.handle_exception(
+                ValueError("Please select a base directory"), 
+                "Input validation",
+                show_gui_error=True,
+                gui_error_callback=lambda title, msg: messagebox.showerror(title, msg)
+            )
             return False
         
         if not os.path.exists(self.base_path_var.get()):
-            messagebox.showerror("Error", "Selected directory does not exist")
+            ErrorLogger.handle_exception(
+                ValueError("Selected directory does not exist"), 
+                "Input validation",
+                show_gui_error=True,
+                gui_error_callback=lambda title, msg: messagebox.showerror(title, msg)
+            )
             return False
         
         return True
@@ -260,8 +278,12 @@ class DirectoryOptimizerGUI:
                     self.log_message("No common prefixes found for grouping")
                 
         except Exception as e:
-            self.log_message(f"Error during scan: {str(e)}")
-            messagebox.showerror("Scan Error", str(e))
+            error_msg = ErrorLogger.handle_exception(
+                e, 
+                "Directory scan",
+                show_gui_error=True,
+                gui_error_callback=lambda title, msg: messagebox.showerror("Scan Error", msg)
+            )
     
     def start_optimization(self):
         """Start the optimization process in a separate thread"""
@@ -287,7 +309,8 @@ class DirectoryOptimizerGUI:
                 self.progress_queue.put("=== Optimization Complete ===")
                 
             except Exception as e:
-                self.progress_queue.put(f"ERROR: {str(e)}")
+                error_msg = ErrorLogger.handle_exception(e, "Optimization process")
+                self.progress_queue.put(f"ERROR: {error_msg}")
             finally:
                 # Re-enable buttons
                 self.root.after(0, self.enable_buttons)
@@ -339,7 +362,8 @@ class DirectoryOptimizerGUI:
                     self.progress_queue.put("=== Reversal Failed ===")
                     
             except Exception as e:
-                self.progress_queue.put(f"REVERSAL ERROR: {str(e)}")
+                error_msg = ErrorLogger.handle_exception(e, "Reversal process")
+                self.progress_queue.put(f"REVERSAL ERROR: {error_msg}")
             finally:
                 # Re-enable buttons
                 self.root.after(0, self.enable_buttons)

@@ -15,6 +15,7 @@ import datetime
 from pathlib import Path
 from typing import List, Dict, Set, Tuple, Optional
 from collections import defaultdict
+import ErrorLogger
 
 
 class DirectoryOptimizer:
@@ -26,28 +27,25 @@ class DirectoryOptimizer:
         self.optimization_log = []
         self.progress_callback = progress_callback
         
+        # Set up ErrorLogger with progress callback if provided
+        if progress_callback:
+            ErrorLogger.get_logger().set_gui_callback(progress_callback)
+        
     def log_action(self, action: str, details: Dict):
         """Log all actions for reversibility"""
-        timestamp = datetime.datetime.now().isoformat()
-        log_entry = {
-            "timestamp": timestamp,
-            "action": action,
-            "details": details
-        }
+        log_entry = ErrorLogger.get_logger().create_log_entry(action, details)
         self.optimization_log.append(log_entry)
         
-        if self.progress_callback:
-            self.progress_callback(f"[{action}] {details}")
+        ErrorLogger.log_action(action, details)
     
     def update_progress(self, message: str):
         """Update progress through callback"""
-        if self.progress_callback:
-            self.progress_callback(message)
+        ErrorLogger.log_message(message)
     
     def save_state(self):
         """Save optimization state for reversal"""
         state = {
-            "timestamp": datetime.datetime.now().isoformat(),
+            "timestamp": ErrorLogger.get_timestamp('iso'),
             "base_path": str(self.base_path),
             "log": self.optimization_log
         }
@@ -108,7 +106,7 @@ class DirectoryOptimizer:
             if item.is_dir() and ("base" in item.name.lower() and "files" in item.name.lower()):
                 existing_base_files.append(item)
         
-        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        timestamp = ErrorLogger.get_timestamp('filename')
         
         for bf_dir in existing_base_files:
             new_name = f"Original_{bf_dir.name}_{timestamp}"
@@ -133,7 +131,7 @@ class DirectoryOptimizer:
                     hash_sha256.update(chunk)
             return hash_sha256.hexdigest()
         except Exception as e:
-            self.update_progress(f"Error hashing {file_path}: {e}")
+            ErrorLogger.handle_exception(e, f"Hashing file {file_path}")
             return ""
     
     def find_duplicate_files(self, directories: List[Path]) -> Dict[str, List[Path]]:
