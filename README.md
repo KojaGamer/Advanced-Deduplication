@@ -1,5 +1,5 @@
 # Advanced-Deduplication
-Deduplicates directories in a reversible manner.
+Provides file level deduplication across selected directories in a reversible manner.
 
 # Simple Guide
 First download lastest Python version
