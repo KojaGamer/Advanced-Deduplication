@@ -21,7 +21,9 @@ Two different versions of a video game, Crusader Kings 3 that is a quite challen
 
 # Compression:
  • Hand Deduplicated: 42 minutes 27 seconds, output: 7.477MB
+	
  • Audo Deduplicated: 1 hour 4 minutes and 4 seconds, output: 5,714,354,587
+	
  • (Compression performed with LZMA2 with dicitionary size around 1380MB)
 
 # My Computer Specs
