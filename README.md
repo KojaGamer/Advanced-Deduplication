@@ -30,3 +30,6 @@ Two different versions of a video game, Crusader Kings 3 that is a quite challen
  • CPU: Ryzen 5 3600
  • RAM: 16 GB
  • Storage: SSD
+
+ # Google Meta Data
+ <meta name="google-site-verification" content="GmZAeT-RmxdyYCQwbyPBe0RLw-tJz9QmbC7vBcGEeMY" />
